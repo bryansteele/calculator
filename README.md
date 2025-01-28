@@ -4,4 +4,4 @@
 
 ### but you can check it our at:
 
-Check it Out at bryanscalculator.netlify.app
+Check it Out at https://bryanscalculator.netlify.app
