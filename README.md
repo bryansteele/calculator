@@ -2,6 +2,4 @@
 
 ## Work still in Progress
 
-### but you can check it our at:
-
-Check it Out at https://bryanscalculator.netlify.app
+### but you can check it out at: https://bryanscalculator.netlify.app
