@@ -1,160 +1,136 @@
-// Access DOM elements of the calculator
-
-const inputBox = document.getElementById('input');
-const expressionDiv = document.getElementById('expression');
-const resultDiv = document.getElementById('result');
-
-// Define expression and result variable
-
-let expression = '';
-let result = '';
-
-// Define event handler for button clicks
-
-function buttonClick(event) {
-  // Get values from clicked button
-  const target = event.target;
-  const action = target.dataset.action;
-  const value = target.dataset.value;
-  // console.log(target, action, value);
-
-  // Switch case to control the calculator
-  switch (action) {
-    case 'number':
-      addValue(value);
-      break;
-    case 'clear':
-      clear();
-      break;
-    case 'backspace':
-      backspace();
-      break;
-      // Add result to expression as a starting point if expression is empty
-    case 'addition':
-    case 'subtraction':
-    case 'multiplication':
-    case 'division':
-      if (expression === '' && result !== '') {
-        startFromResult(value);
-      } else if (expression !== '' && !isLastCharOperator()) {
-        addValue(value);
-      }
-      break;
-    case 'submit':
-      submit();
-      break;
-    case 'negate':
-      negate();
-      break;
-    case 'mod':
-      percentage();
-      break;
-    case 'decimal':
-      decimal(value);
-      break;
+class Calculator {
+  constructor(previousOperandTextElement, currentOperandTextElement) {
+    this.previousOperandTextElement = previousOperandTextElement;
+    this.currentOperandTextElement = currentOperandTextElement;
+    this.clear();
   }
 
-  // Update display
-  updateDisplay(expression, result);
-}
+  clear() {
+    this.currentOperand = '';
+    this.previousOperand = '';
+    this.operation = undefined;
+  }
 
-inputBox.addEventListener('click', buttonClick);
+  delete() {
+    this.currentOperand = this.currentOperand.toString().slice(0, -1);
+  }
 
-function addValue(value) {
-  if (value === '.') {
-    // Find the index of the last operator in the expression
-    const lastOperatorIndex = expression.search(/[+\-*/]/);
-    // Find the index of the last decimal in the expression
-    const lastDecimalIndex = expression.lastIndexOf('.');
-    // Find the of the last number in the expression
-    const lastNumberIndex = Math.max(
-      expression.lastIndexOf('+'),
-      expression.lastIndexOf('-'),
-      expression.lastIndexOf('*'),
-      expression.lastIndexOf('/'),
-    );
-    // Check if this is the first decimal in the current number or if the expression is empty
-    if (
-      (lastDecimalIndex < lastOperatorIndex ||
-        lastDecimalIndex <lastNumberIndex ||
-        lastDecimalIndex === -1) &&
-      (expression === '' ||
-        expression.slice(lastNumberIndex + 1).indexOf('-') === -1)
-    ) {
-      expression += value;
+  appendNumber(number) {
+    if (number === '.' && this.currentOperand.includes('.')) return;
+    this.currentOperand = this.currentOperand.toString() + number.toString();
+  }
+
+  chooseOperation(operation) {
+    if (this.currentOperand === '') return;
+    if (this.previousOperand !== '') {
+      this.compute();
     }
-  } else {
-    expression += value;
+    this.operation = operation;
+    this.previousOperand = this.currentOperand;
+    this.currentOperand = '';
   }
-}
 
-function updateDisplay(expression, result) {
-  expressionDiv.textContent = expression;
-  resultDiv.textContent = result;
-}
-
-function clear() {
-  expression = '';
-  result = '';
-}
-
-function backspace() {
-  expression = expression.slice(0, -1);
-}
-
-function isLastCharOperator() {
-  return isNaN(parseInt(expression.slice(-1)));
-}
-
-function startFromResult(value) {
-  expression += result + value;
-}
-
-function submit() {
-  result = evaluateExpression();
-  expression = '';
-}
-
-function evaluateExpression() {
-  const evalResult = eval(expression);
-  // Checks if evalResult isNaN or infinate. If it is, return a space character ' '
-  return isNaN(evalResult) || !isFinite(evalResult)
-  ? ' '
-  : evalResult < 1 ? parseFloat(evalResult.toFixed(10))
-  : parseFloat(evalResult.toFixed(2));
-}
-
-function negate() {
-  // Negate the result if the expression is empty and result is present
-  if (expression === '' && result !== '') {
-    result = -result;
-    // Toggle the sign of the expression if its not already negative and its not empty
-  } else if (!expression.startsWith('-') && expression !== '') {
-    expression = '-' + expression;
-    // Remove the negative sign from the expression if its already negative
-  } else if (expression.startsWith('-')) {
-    expression = expression.slice(1);
+  compute() {
+    let computation;
+    const prev = parseFloat(this.previousOperand);
+    const current = parseFloat(this.currentOperand);
+    if (isNaN(prev) || isNaN(current)) return;
+    switch (this.operation) {
+      case '+':
+        computation = prev + current;
+        break;
+      case '-':
+        computation = prev - current;
+        break;
+      case '*':
+        computation = prev * current;
+        break;
+      case '÷':
+        computation = prev / current;
+        break;
+      default:
+        return;
+    }
+    this.currentOperand = computation;
+    this.operation = undefined;
+    this.previousOperand = '';
   }
-}
 
-function percentage() {
-  // Evaluate the expression, else it will take the percentage of only the first number
-  if (expression != '') {
-    result = evaluateExpression();
-    expression = '';
-    if (!isNaN(result) && isFinite(result)) {
-      result /= 100;
+  getDisplayNumber(number) {
+    const stringNumber = number.toString();
+    const integerDigits = parseFloat(stringNumber.split('.')[0]);
+    const decimalDigits = stringNumber.split('.')[1];
+    let integerDisplay;
+    if (isNaN(integerDigits)) {
+      integerDisplay = '';
     } else {
-      result = '';
+      integerDisplay = integerDigits.toLocaleString('en', {
+        maximumFractionDigits: 0,
+      });
     }
-  } else if (result !== '') {
-    // If expression is empty but the result exists, divide by 100
-    result = parseFloat(result) / 100;
+    if (decimalDigits != null) {
+      return `${integerDisplay}.${decimalDigits}`;
+    } else {
+      return integerDisplay;
+    }
+  }
+
+  updateDisplay() {
+    this.currentOperandTextElement.innerText = this.getDisplayNumber(
+      this.currentOperand
+    );
+    if (this.operation != null) {
+      this.previousOperandTextElement.innerText = `${this.getDisplayNumber(
+        this.previousOperand
+      )} ${this.operation}`;
+    } else {
+      this.previousOperandTextElement.innerText = '';
+    }
   }
 }
 
-function decimal(value) {
-  if (!expression.endsWith('.') && !isNaN(expression.slice(-1))){
-    addValue(value);
-  }
-}
+const numberButtons = document.querySelectorAll('[data-number]');
+const operationButtons = document.querySelectorAll('[data-operation]');
+const equalsButton = document.querySelector('[data-equals]');
+const deleteButton = document.querySelector('[data-delete]');
+const allClearButton = document.querySelector('[data-all-clear]');
+const previousOperandTextElement = document.querySelector(
+  '[data-previous-operand]'
+);
+const currentOperandTextElement = document.querySelector(
+  '[data-current-operand]'
+);
+
+const calculator = new Calculator(
+  previousOperandTextElement,
+  currentOperandTextElement
+);
+
+numberButtons.forEach((button) => {
+  button.addEventListener('click', () => {
+    calculator.appendNumber(button.innerText);
+    calculator.updateDisplay();
+  });
+});
+
+operationButtons.forEach((button) => {
+  button.addEventListener('click', () => {
+    calculator.chooseOperation(button.innerText);
+    calculator.updateDisplay();
+  });
+});
+
+equalsButton.addEventListener('click', (button) => {
+  calculator.compute();
+  calculator.updateDisplay();
+});
+
+allClearButton.addEventListener('click', (button) => {
+  calculator.clear();
+  calculator.updateDisplay();
+});
+
+deleteButton.addEventListener('click', (button) => {
+  calculator.delete();
+  calculator.updateDisplay();
+});
