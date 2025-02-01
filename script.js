@@ -123,6 +123,7 @@ operationButtons.forEach((button) => {
 equalsButton.addEventListener('click', (button) => {
   calculator.compute();
   calculator.updateDisplay();
+  calculator.clear();
 });
 
 allClearButton.addEventListener('click', (button) => {
